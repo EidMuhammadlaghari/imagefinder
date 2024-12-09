@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/search_controller.dart' as custom;
+import '../controllers/search_controller.dart' as custom; // Alias added
 
 class SearchPage extends StatelessWidget {
-  final custom.SearchController controller = Get.put(custom.SearchController());
+  final custom.SearchController controller =
+      Get.put(custom.SearchController()); // Use the alias here
+  final TextEditingController searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +29,7 @@ class SearchPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: searchController,
                     decoration: InputDecoration(
                       hintText: 'Search...',
                       border: OutlineInputBorder(),
@@ -36,8 +39,10 @@ class SearchPage extends StatelessWidget {
                 SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    // Simulate search by fetching static images
-                    // Replace this with API logic later
+                    final query = searchController.text.trim();
+                    if (query.isNotEmpty) {
+                      controller.fetchImages(query); // Call fetchImages
+                    }
                   },
                   child: Text('Search'),
                 ),
@@ -46,13 +51,22 @@ class SearchPage extends StatelessWidget {
           ),
           Expanded(
             child: Obx(() {
+              if (controller.isLoading.value) {
+                return Center(child: CircularProgressIndicator());
+              }
+              if (controller.errorMessage.isNotEmpty) {
+                return Center(child: Text(controller.errorMessage.value));
+              }
+              if (controller.images.isEmpty) {
+                return Center(child: Text('No images found. Please search.'));
+              }
               return GridView.builder(
                 padding: const EdgeInsets.all(8.0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 8.0,
                   mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
+                  childAspectRatio: 1.0, // Ensure all items have a square ratio
                 ),
                 itemCount: controller.images.length,
                 itemBuilder: (context, index) {
@@ -77,54 +91,85 @@ class ImageTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Image.network(
-                  image['url'],
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => controller.toggleFavorite(image),
-                    child: Obx(() {
-                      return Icon(
-                        controller.isFavorited(image)
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        color: controller.isFavorited(image)
-                            ? Colors.red
-                            : Colors.grey,
-                      );
-                    }),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8.0), // Add rounded corners
+      ),
+      elevation: 4.0, // Add shadow for a smoother UI
+      child: ClipRRect(
+        borderRadius:
+            BorderRadius.circular(8.0), // Clip the image to match card corners
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  Image.network(
+                    image['webformatURL'],
+                    width: double.infinity,
+                    fit: BoxFit.cover, // Ensure image fills its container
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Center(
+                          child:
+                              CircularProgressIndicator()); // Show loading indicator
+                    },
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Icon(Icons.broken_image, color: Colors.grey),
+                    ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () {
+                        controller.toggleFavorite(image);
+                        Get.snackbar(
+                          'Favorites Updated',
+                          controller.isFavorited(image)
+                              ? 'Image added to favorites'
+                              : 'Image removed from favorites',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.black87,
+                          colorText: Colors.white,
+                        );
+                      },
+                      child: Obx(() {
+                        return Icon(
+                          controller.isFavorited(image)
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: controller.isFavorited(image)
+                              ? Colors.red
+                              : Colors.grey,
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Owner: ${image['owner']}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Size: ${(image['size'] / 1024).toStringAsFixed(2)} MB',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Owner: ${image['user']}',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis, // Truncate if text is too long
+                  ),
+                  Text(
+                    'Size: ${(image['imageSize'] / 1024).toStringAsFixed(2)} KB',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
