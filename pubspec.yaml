@@ -37,6 +37,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   get:
   http:
+  shimmer:
+  mockito:
+  build_runner:
 
 dev_dependencies:
   flutter_test:

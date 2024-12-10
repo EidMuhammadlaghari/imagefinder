@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import '../features/search/views/search_page.dart';
-import '../features/favorites/views/favorites_page.dart'; // Import FavoritesPage
+import 'package:imagefinder/features/favorites/views/favorites_page.dart';
+import 'package:imagefinder/features/search/views/search_page.dart';
 
 final routes = [
   GetPage(name: '/', page: () => SearchPage()),

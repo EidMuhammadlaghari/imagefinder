@@ -1,14 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/search_controller.dart' as custom; // Alias added
+import 'package:imagefinder/features/search/controllers/search_controller.dart'
+    as custom;
 
 class SearchPage extends StatelessWidget {
-  final custom.SearchController controller =
-      Get.put(custom.SearchController()); // Use the alias here
+  final custom.SearchController controller = Get.put(custom.SearchController());
   final TextEditingController searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
+    // Add listener for infinite scroll
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        // Trigger pagination when the user scrolls to the bottom
+        final query = searchController.text.trim();
+        if (query.isNotEmpty && !controller.isLoading.value) {
+          controller.fetchImages(query, isPagination: true);
+        }
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Search Images'),
@@ -16,7 +29,7 @@ class SearchPage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.favorite),
             onPressed: () {
-              Get.toNamed('/favorites'); // Navigate to the Favorites screen
+              Get.toNamed('/favorites');
             },
           ),
         ],
@@ -41,7 +54,7 @@ class SearchPage extends StatelessWidget {
                   onPressed: () {
                     final query = searchController.text.trim();
                     if (query.isNotEmpty) {
-                      controller.fetchImages(query); // Call fetchImages
+                      controller.fetchImages(query); // Start fresh search
                     }
                   },
                   child: Text('Search'),
@@ -51,7 +64,7 @@ class SearchPage extends StatelessWidget {
           ),
           Expanded(
             child: Obx(() {
-              if (controller.isLoading.value) {
+              if (controller.isLoading.value && controller.images.isEmpty) {
                 return Center(child: CircularProgressIndicator());
               }
               if (controller.errorMessage.isNotEmpty) {
@@ -61,12 +74,13 @@ class SearchPage extends StatelessWidget {
                 return Center(child: Text('No images found. Please search.'));
               }
               return GridView.builder(
+                controller: _scrollController, // Use the scroll controller
                 padding: const EdgeInsets.all(8.0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 8.0,
                   mainAxisSpacing: 8.0,
-                  childAspectRatio: 1.0, // Ensure all items have a square ratio
+                  childAspectRatio: 1.0,
                 ),
                 itemCount: controller.images.length,
                 itemBuilder: (context, index) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/favorites_controller.dart';
+import 'package:imagefinder/features/favorites/controllers/favorites_controller.dart';
 
 class FavoritesPage extends StatelessWidget {
   final FavoritesController controller = Get.find<FavoritesController>();
@@ -44,74 +44,72 @@ class FavoriteImageTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0), // Add rounded corners
-      ),
-      elevation: 4.0, // Add shadow for a smoother UI
-      child: ClipRRect(
-        borderRadius:
-            BorderRadius.circular(8.0), // Clip the image to match card corners
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Image.network(
-                image['webformatURL'],
-                width: double.infinity,
-                fit: BoxFit.cover, // Ensure smooth UI for images
+    final String imageUrl = image['webformatURL'] ?? '';
+    final String user = image['user'] ?? 'Unknown';
+    final double size = (image['imageSize'] ?? 0) / 1024;
+
+    return GestureDetector(
+      onTap: () {
+        Get.defaultDialog(
+          title: 'Remove Favorite',
+          content: Text('Do you want to remove this image from favorites?'),
+          confirm: ElevatedButton(
+            onPressed: () {
+              controller.toggleFavorite(image);
+              Get.back();
+              Get.snackbar(
+                'Favorites Updated',
+                'Image removed from favorites',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.black87,
+                colorText: Colors.white,
+              );
+            },
+            child: Text('Yes'),
+          ),
+          cancel: OutlinedButton(
+            onPressed: () => Get.back(),
+            child: Text('No'),
+          ),
+        );
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        elevation: 4.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Image.network(
+                  imageUrl,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Center(child: Icon(Icons.broken_image)),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Owner: ${image['user']}',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Size: ${(image['imageSize'] / 1024).toStringAsFixed(2)} KB',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: IconButton(
-                icon: Icon(Icons.delete, color: Colors.red),
-                onPressed: () {
-                  Get.defaultDialog(
-                    title: 'Remove Favorite',
-                    content: Text(
-                        'Do you want to remove this image from favorites?'),
-                    confirm: ElevatedButton(
-                      onPressed: () {
-                        controller.toggleFavorite(image);
-                        Get.back(); // Close dialog
-                        Get.snackbar(
-                          'Favorites Updated',
-                          'Image removed from favorites',
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.black87,
-                          colorText: Colors.white,
-                        );
-                      },
-                      child: Text('Yes'),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Owner: $user',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    cancel: OutlinedButton(
-                      onPressed: () {
-                        Get.back(); // Close dialog
-                      },
-                      child: Text('No'),
+                    Text(
+                      'Size: ${size.toStringAsFixed(2)} KB',
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
